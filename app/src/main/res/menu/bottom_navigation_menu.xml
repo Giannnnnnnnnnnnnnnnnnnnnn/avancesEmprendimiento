@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/action_home"
+        android:icon="@android:drawable/ic_menu_revert"
+        android:title="Inicio" />
+
+    <item
+        android:id="@+id/action_entrepreneurships"
+        android:icon="@android:drawable/ic_dialog_map"
+        android:title="Emprendimientos" />
+
+    <item
+        android:id="@+id/action_account"
+        android:icon="@android:drawable/ic_dialog_info"
+        android:title="Cuenta" />
+
+    <item
+        android:id="@+id/action_cart"
+        android:icon="@android:drawable/ic_input_get"
+        android:title="Carrito" />
+
+</menu>
