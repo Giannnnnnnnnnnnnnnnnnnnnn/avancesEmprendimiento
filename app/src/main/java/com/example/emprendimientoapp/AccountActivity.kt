@@ -1,93 +1,60 @@
 package com.example.emprendimientoapp
 
-
-import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.emprendimientoapp.R
-import com.example.emprendimientoapp.CartActivity
-import com.example.emprendimientoapp.EditAccountActivity
-import com.example.emprendimientoapp.EntrepreneurshipsActivity
-import com.example.emprendimientoapp.SearchActivity
-import com.example.emprendimientoapp.LoginActivity
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.ktx.Firebase
 
 class AccountActivity : AppCompatActivity() {
 
-    private lateinit var userNameTextView: TextView
-    private lateinit var userEmailTextView: TextView
-    private lateinit var userAddressTextView: TextView
-    private lateinit var editButton: Button
-    private lateinit var logoutButton: Button
+    private lateinit var auth: FirebaseAuth
+    private lateinit var db: FirebaseFirestore
+
+    private lateinit var nameTextView: TextView
+    private lateinit var emailTextView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_account)
 
-        // Referencias a los elementos de la UI
-        userNameTextView = findViewById(R.id.userNameTextView)
-        userEmailTextView = findViewById(R.id.userEmailTextView)
-        userAddressTextView = findViewById(R.id.userAddressTextView)
-        editButton = findViewById(R.id.editButton)
-        logoutButton = findViewById(R.id.logoutButton)
+        // Inicializar Firebase Auth y Firestore
+        auth = FirebaseAuth.getInstance()
+        db = FirebaseFirestore.getInstance()
 
-        // Simulación de datos del usuario
-        val userName = "Juan Pérez"
-        val userEmail = "juan.perez@example.com"
-        val userAddress = "Calle 123, Bogotá, Colombia"
+        // Referencias a los TextView en el layout
+        nameTextView = findViewById(R.id.userNameTextView)
+        emailTextView = findViewById(R.id.userEmailTextView)
 
-        // Configuración de la información del usuario
-        userNameTextView.text = userName
-        userEmailTextView.text = userEmail
-        userAddressTextView.text = userAddress
+        // Obtener el usuario actual
+        val currentUser: FirebaseUser? = auth.currentUser
+        if (currentUser != null) {
+            // Mostrar email del usuario desde FirebaseAuth
+            emailTextView.text = currentUser.email
 
-        // Acción del botón Editar
-        editButton.setOnClickListener {
-            val intent = Intent(this, EditAccountActivity::class.java)
-            startActivity(intent)
-        }
-
-        // Acción del botón Cerrar sesión
-        logoutButton.setOnClickListener {
-            val intent = Intent(this, LoginActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-            startActivity(intent)
-            finish()
-        }
-
-        // Implementación del BottomNavigationView
-        val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottom_navigation)
-
-        bottomNavigationView.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.action_home -> {
-                    // Navegar a la pantalla de inicio
-                    val intent = Intent(this, SearchActivity::class.java)
-                    startActivity(intent)
-                    true
+            // Obtener datos adicionales del usuario desde Firestore
+            val userId = currentUser.uid
+            db.collection("users").document(userId).get()
+                .addOnSuccessListener { document ->
+                    if (document != null) {
+                        val name = document.getString("name")  // Asume que tienes un campo "name" en Firestore
+                        if (!name.isNullOrEmpty()) {
+                            nameTextView.text = name
+                        } else {
+                            nameTextView.text = "Nombre no disponible"
+                        }
+                    } else {
+                        Toast.makeText(this, "No se encontraron datos de usuario", Toast.LENGTH_SHORT).show()
+                    }
                 }
-                R.id.action_entrepreneurships -> {
-                    // Navegar a la pantalla de emprendimientos
-                    val intent = Intent(this, EntrepreneurshipsActivity::class.java)
-                    startActivity(intent)
-                    true
+                .addOnFailureListener { e ->
+                    Toast.makeText(this, "Error al obtener los datos del usuario: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
-                R.id.action_account -> {
-                    // Navegar a la pantalla de cuenta
-                    val intent = Intent(this, AccountActivity::class.java)
-                    startActivity(intent)
-                    true
-                }
-                R.id.action_cart -> {
-                    // Navegar a la pantalla del carrito
-                    val intent = Intent(this, CartActivity::class.java)
-                    startActivity(intent)
-                    true
-                }
-                else -> false
-            }
+        } else {
+            Toast.makeText(this, "No hay ningún usuario autenticado", Toast.LENGTH_SHORT).show()
         }
     }
 }
