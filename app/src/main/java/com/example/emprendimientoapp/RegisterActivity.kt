@@ -6,12 +6,11 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.emprendimientoapp.R
-import com.example.emprendimientoapp.LoginActivity
-import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.auth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -21,6 +20,7 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var confirmPasswordEditText: EditText
     private lateinit var registerButton: Button
     private lateinit var auth: FirebaseAuth
+    private val db = Firebase.firestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,55 +33,57 @@ class RegisterActivity : AppCompatActivity() {
         confirmPasswordEditText = findViewById(R.id.confirmPasswordEditText)
         registerButton = findViewById(R.id.registerButton)
 
-        // Acción del botón de registro
         registerButton.setOnClickListener {
-            val name = nameEditText.text.toString()
-            val email = emailEditText.text.toString()
-            val password = passwordEditText.text.toString()
-            val confirmPassword = confirmPasswordEditText.text.toString()
-            auth = Firebase.auth
+            val name = nameEditText.text.toString().trim()
+            val email = emailEditText.text.toString().trim()
+            val password = passwordEditText.text.toString().trim()
+            val confirmPassword = confirmPasswordEditText.text.toString().trim()
 
-            auth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this) { task ->
-                    if (task.isSuccessful) {
-                        // Sign up success, update UI with the signed-in user
-                        val user = auth.currentUser
-                        // Aquí puedes actualizar la UI o navegar a otra actividad
-                        updateUI(user)
-                    } else {
-                        // If sign up fails, display a message to the user
-                        val errorMessage = task.exception?.message
-                        Toast.makeText(baseContext, "Error: $errorMessage", Toast.LENGTH_SHORT)
-                            .show()
-                        // Aquí puedes manejar el error según lo necesites
-                    }
-                }
-
-
-            // Validación básica de los campos
             if (name.isBlank() || email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
-                Toast.makeText(this, "Por favor completa todos los campos", Toast.LENGTH_SHORT)
-                    .show()
+                Toast.makeText(this, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
             } else if (password != confirmPassword) {
                 Toast.makeText(this, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
             } else {
-                // Aquí podrías agregar lógica para registrar el usuario en una base de datos
-                Toast.makeText(this, "Registro exitoso", Toast.LENGTH_SHORT).show()
-
-                // Redirigir al usuario a la pantalla de inicio de sesión después del registro
-                val intent = Intent(this, LoginActivity::class.java)
-                startActivity(intent)
-                finish()
+                auth = Firebase.auth
+                auth.createUserWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(this) { task ->
+                        if (task.isSuccessful) {
+                            val user = auth.currentUser
+                            if (user != null) {
+                                saveUserDataToFirestore(user.uid, name, email)
+                                updateUI(user)
+                            }
+                        } else {
+                            val errorMessage = task.exception?.message
+                            Toast.makeText(baseContext, "Error: $errorMessage", Toast.LENGTH_SHORT).show()
+                        }
+                    }
             }
         }
     }
 
+    private fun saveUserDataToFirestore(userId: String, name: String, email: String) {
+        // Guardar los datos del usuario en Firestore
+        val user = hashMapOf(
+            "name" to name,
+            "email" to email
+        )
+
+        db.collection("users").document(userId)
+            .set(user)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Usuario registrado con éxito", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error al guardar datos: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
     private fun updateUI(user: FirebaseUser?) {
         if (user != null) {
-            // Por ejemplo, redirigir a la pantalla principal
-            startActivity(Intent(this, MainActivity::class.java))
-            finish() // Opcional, para cerrar la actividad de registro
+            // Redirigir a la pantalla principal
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
         }
     }
 }
-

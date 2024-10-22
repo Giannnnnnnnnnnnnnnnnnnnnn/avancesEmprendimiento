@@ -1,58 +1,61 @@
 package com.example.emprendimientoapp
 
-
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.emprendimientoapp.SearchActivity
-import com.example.emprendimientoapp.RegisterActivity
-
-import com.example.emprendimientoapp.R
-import com.google.android.gms.auth.api.Auth
-import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var etEmail: EditText
     private lateinit var etPassword: EditText
     private lateinit var auth: FirebaseAuth
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
+        etEmail = findViewById(R.id.etEmail)
+        etPassword = findViewById(R.id.etPassword)
         auth = Firebase.auth
 
-        auth.signInWithEmailAndPassword(
-            etEmail.toString(),
-            etPassword.toString()
-        ).addOnCompleteListener(this) { task ->
-            if (task.isSuccessful) {
-                FirebaseAuth.getInstance().currentUser
+        val btnEnter: Button = findViewById(R.id.btnLogin)
+        btnEnter.setOnClickListener {
+            val email = etEmail.text.toString().trim()
+            val password = etPassword.text.toString().trim()
+
+            if (email.isNotEmpty() && password.isNotEmpty()) {
+                auth.signInWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(this) { task ->
+                        if (task.isSuccessful) {
+                            // El usuario ha iniciado sesión correctamente
+                            val user = FirebaseAuth.getInstance().currentUser
+                            if (user != null) {
+                                Toast.makeText(this, "Bienvenido, ${user.email}", Toast.LENGTH_SHORT).show()
+                                // Redirigir a la pantalla principal
+                                val intent = Intent(this, SearchActivity::class.java)
+                                startActivity(intent)
+                                finish()
+                            }
+                        } else {
+                            // Si el inicio de sesión falla, muestra un mensaje
+                            Toast.makeText(this, "Error al iniciar sesión: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
             } else {
-task.exception
+                Toast.makeText(this, "Por favor, introduce el correo y la contraseña", Toast.LENGTH_SHORT).show()
             }
         }
 
-
-
-        etEmail=findViewById(R.id.etEmail)
-        etPassword=findViewById(R.id.etPassword)
-
-    val btnEnter: Button = findViewById(R.id.btnLogin)
-    btnEnter.setOnClickListener{
-        val intent = Intent(this, SearchActivity::class.java)
-        startActivity(intent)
-
-    }
-        val btnEnterr: Button = findViewById(R.id.btnRegister)
-        btnEnterr.setOnClickListener{
+        val btnRegister: Button = findViewById(R.id.btnRegister)
+        btnRegister.setOnClickListener {
             val intent = Intent(this, RegisterActivity::class.java)
             startActivity(intent)
-
         }
-}}
+    }
+}
